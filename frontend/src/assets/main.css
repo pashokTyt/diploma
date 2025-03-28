@@ -1,0 +1,26 @@
+#app {
+  margin: 0;
+
+  font-weight: normal;
+}
+
+body {
+  background-color: #f8f9fa;
+}
+
+.header-container {
+  display: flex;
+  align-items: center;
+  margin-top: 1%;
+  background: linear-gradient(to right, #10335f, #0f1722);
+  padding: 10px;
+  color: white;
+  border-radius: 10px;
+  height:min-content;
+}
+
+.header-container img {
+  width: 7%;
+  height: auto;
+  margin-right: 15px;
+}
