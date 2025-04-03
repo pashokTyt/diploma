@@ -1,7 +1,7 @@
 import logging
 
 import requests
-from datetime import datetime
+import datetime as datetime
 import os
 import django
 from bs4 import BeautifulSoup  # type: ignore
@@ -16,6 +16,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select
 
 
 from asgiref.sync import sync_to_async
@@ -294,6 +295,81 @@ async def get_data_orel_region(url="shit", region_name="ОРЛОВСКАЯ ОБ�
                         print(f"Ошибка преобразования даты для {name}: {e}")
     print("Orel_region собран")
 
+from bs4 import BeautifulSoup
+from datetime import datetime
+import requests
+import re
+
+def get_data_IPS():
+    # тут начались танцы с бубном, сайт подгружает все динамически, поэтому нашел ЮРЛ, который возвращает html, в котором таблица со всеми НПА
+    url = "http://pravo.gov.ru/proxy/ips/?list_itself=&bpas=r015700&a3=&a3type=1&a3value=&a6=&a6type=1&a6value=&a15=113000053&a15type=1&a15value=%CE%F0%EB%EE%E2%F1%EA%E0%FF+%EE%E1%EB%E0%F1%F2%FC&a7type=4&a7from=26.03.2025&a7to=02.04.2025&a7date=&a8=&a8type=1&a1=&a0=&a16=&a16type=1&a16value=&a17=&a17type=1&a17value=&a4=&a4type=1&a4value=&a23=&a23type=1&a23value=&textpres=&sort=7&x=62&y=10&page=firstlast"
+    try:
+        response = requests.get(url)
+        response.raise_for_status() 
+    except requests.exceptions.RequestException as e:
+        print(f"Ошибка при запросе: {e}")
+        exit()
+
+    with open("page_source.html", "w", encoding="utf-8") as file:
+        file.write(response.text)
+
+    with open("page_source.html", "r", encoding="utf-8") as file:
+        soup = BeautifulSoup(file, "html.parser")
+
+    table = soup.find("table", class_="list_elem even")
+
+    if table:
+        rows = table.find_all("tr")
+        for row in rows:
+            cols = row.find_all("td")
+            for col in cols:
+                if col.find("div", class_="l_link"):
+                    link_div = col.find("div", class_="l_link")
+                    name = link_div.find("a").text.strip()
+
+                    match = re.search(r'№\s*(\d+)', name)
+                    if match:
+                        number = match.group(1)
+                    else:
+                        number = "Номер не найден"
+
+                    publish_date_str = "26.03.2025" 
+                    write_date_str = "26.03.2025"
+                    date_current = datetime.today().date()
+                    link_to_download = '-'
+
+                    source_name = "ИПС Законодательство"
+                    try:
+                        source_instance = models.Source.objects.get(name=source_name)
+                    except models.Source.DoesNotExist:
+                        source_instance = models.Source.objects.create(name=source_name, url_address="http://example.com")
+
+                    region_name = "ОРЛОВСКАЯ ОБЛАСТЬ"
+                    try:
+                        region_instance = models.Region.objects.get(name=region_name)
+                    except models.Region.DoesNotExist:
+                        region_instance = models.Region.objects.create(name=region_name, code="57")
+
+                    try:
+                        new_record = models.PublishedNPA(
+                            published=False,
+                            name=name,
+                            number=number,
+                            publish_date=datetime.strptime(publish_date_str, '%d.%m.%Y').date(),
+                            write_date=datetime.strptime(write_date_str, '%d.%m.%Y').date(),
+                            date_now=date_current,
+                            link_to_download=link_to_download,
+                            source=source_instance,
+                            region=region_instance
+                        )
+                        new_record.save()
+                    except Exception as e:
+                        print(f"Ошибка при сохранении записи: {e}")
+    else:
+        print("Таблица не найдена")
+
+
+
 
 def parse_orel_npa():
     logging.info('Парсер запущен')
@@ -311,6 +387,12 @@ def parse_orel_npa():
         asyncio.run(get_data_orel_region())
     except ValueError as e:
                 print(f"Ошибка парсинга с  orel-region: {e}")
+    
+    try:
+        get_data_IPS()
+    except ValueError as e:
+                print(f"Ошибка парсинга с  ИПС Законодательство: {e}")
+                
                 
     logging.info('Парсер завершил работу')
 

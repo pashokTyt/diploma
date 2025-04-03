@@ -20,11 +20,8 @@ def compare_npa():
         best_score = 0
 
         for pravo_npa in pravo_gov_ru_data:
-            # Нечеткое сравнение по имени
             name_score = fuzz.token_sort_ratio(npa.name, pravo_npa.name)
-            # Сравнение номера и даты принятия
             if npa.number == pravo_npa.number and npa.write_date == pravo_npa.write_date:
-                # Если номер и дата совпадают, добавляем бонус к score
                 score = name_score + 100
             else:
                 score = name_score
@@ -33,10 +30,8 @@ def compare_npa():
                 best_score = score
                 best_match = pravo_npa
 
-        # Если найдено совпадение с высоким score (например, выше 80), считаем НПА опубликованным
         if best_score > 80:
             published_npa.add((npa.name, npa.number, npa.write_date))
-            # Обновляем метку published для соответствующих записей
             npa.published = True
             npa.save()
         else:

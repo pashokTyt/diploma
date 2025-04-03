@@ -7,15 +7,15 @@ import os
 
 logger = get_task_logger(__name__)
 
-# Добавьте текущую директорию в sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from parser import parse_orel_npa
+from parser import parse_orel_npa, check_shit
 
 @shared_task(name="run_parser_task")
 def run_parser_task():
     logger.info("Парсер запущен")
     parse_orel_npa()
+    check_shit()
     logger.info("Парсер завершил работу")
 
 
@@ -24,3 +24,9 @@ def run_parser_task():
 # celery -A diplom worker -l info
 
 # sudo systemctl start redis-server
+
+
+
+# git remote add origin https://github.com/pashokTyt/diploma.git
+# git branch -M main
+# git push -u origin main

@@ -12,7 +12,7 @@ class Region(models.Model):
 
 
 class Source(models.Model):
-    name = models.CharField("Источник опубликования", max_length=15)
+    name = models.CharField("Источник опубликования", max_length=25)
     url_address = models.CharField(
         "Адрес источника опубликования", max_length=60)
 
