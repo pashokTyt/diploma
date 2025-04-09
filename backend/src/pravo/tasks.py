@@ -9,13 +9,13 @@ logger = get_task_logger(__name__)
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from parser import parse_orel_npa, check_shit
+from parser import parse_orel_npa, get_data_IPS
 
 @shared_task(name="run_parser_task")
 def run_parser_task():
     logger.info("Парсер запущен")
     parse_orel_npa()
-    check_shit()
+    get_data_IPS()
     logger.info("Парсер завершил работу")
 
 

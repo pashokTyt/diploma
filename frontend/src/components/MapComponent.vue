@@ -1,20 +1,13 @@
 <template>
     <div>
-        <div ref="map" style="height: 500px; width: 100%;"></div>
-        <div v-if="selectedRegionVar">
-            <h3>Данные по региону: {{ selectedRegionVar }}</h3>
-        </div>
+        <div ref="map" style="height:700px; width: 100%;"></div>
     </div>
-    <p></p>
-    <p></p>
-    <p></p>
 </template>
 
 <script>
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import regionsJson from '@/geojson/Regions.json';
-import { selectedRegion } from '@/pinia';
 
 function convertToGeoJSON(regionsJson) {
     const features = [];
@@ -40,9 +33,6 @@ export default {
     data() {
         return {
             map: null,
-            selectedRegionVar: "", //выбранный регион
-            activeLayer: null,
-            selectedRegionData: null, //данные по региону
         };
     },
 
@@ -57,7 +47,7 @@ export default {
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: 'Map data © <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'
+                attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors'
             }).addTo(this.map);
         },
 
@@ -71,14 +61,9 @@ export default {
                 }),
                 onEachFeature: (feature, layer) => {
                     layer.on({
-                        mouseover: () => this.highlightRegion(layer),
-                        mouseout: () => this.resetHighlight(layer),
-                        click: async () => {
-                            this.selectedRegionVar = feature.properties.name;
-                            this.activeLayer = layer;
-                            this.setSelectedRegion(this.selectedRegionVar);
-                            this.$emit('region-selected', this.selectedRegionVar);
-                        }
+                        mouseover: () => this.showPopup(feature, layer),
+                        mouseout: () => this.closePopup(),
+                        click: () => this.showPopup(feature, layer),
                     });
                 }
             }).addTo(this.map);
@@ -102,12 +87,74 @@ export default {
             });
         },
 
-        async setSelectedRegion(region) {
-            const store = selectedRegion();
-            typeof (region) == "string" ? store.setRegionName(region) : store.setRegionName("");
+        showPopup(feature, layer) {
+            const regionName = feature.properties.name;
+            const regionData = this.getRegionData(regionName);
+            const popupContent = `
+                <div class="popup-content">
+                    <h3 style="font-size: 22px; font-weight: 600;">${regionName}</h3>
+                    <div class="sources">
+                    <a href="${regionData.source1}" target="_blank" style="font-size: 16px; display: block; margin-bottom: 5px;">ИПС Законодательство</a>
+                    <a href="${regionData.source2}" target="_blank" style="font-size: 16px; display: block; margin-bottom: 5px;">Pravo.gov.ru</a>
+                    <a href="${regionData.source3}" target="_blank" style="font-size: 16px; display: block; margin-bottom: 5px;">МинЮст</a>
+                    <a href="${regionData.source4}" target="_blank" style="font-size: 16px; display: block;">orel-region</a>
+                    </div>
+                </div>
+                `;
+
+
+
+            L.popup()
+                .setLatLng(layer.getBounds().getCenter())
+                .setContent(popupContent)
+                .openOn(this.map);
+        },
+
+        getRegionData(regionName) {
+
+            return {
+                source1: 'https://example.com/source1',
+                source2: 'https://example.com/source2',
+                source3: 'https://example.com/source2',
+                source4: 'https://example.com/source2',
+            };
         },
     },
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.popup-content h3 {
+    margin-top: 0;
+}
+
+.popup-content p {
+    margin-bottom: 10px;
+}
+
+.sources a {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.popup-content {
+    padding: 10px;
+    font-family: Arial, sans-serif;
+}
+
+.popup-content h3 {
+    margin-top: 0;
+    font-size: 18px;
+}
+
+.popup-content p {
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.sources a {
+    font-size: 16px;
+    display: block;
+    margin-bottom: 5px;
+}
+</style>

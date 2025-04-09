@@ -9,20 +9,20 @@
     </div>
   </div>
 
-  <div class="row">
-    <div class="col-sm">
+
+<!--     <div class="col-sm">
       <div id="monitoring-widget">
         <h2 class="text-xl font-bold mb-2">Мониторинг опубликования:</h2>
         <LineChart v-bind="{ chartLineData: chartLineData }" />
       </div>
-    </div>
+    </div> -->
 
-    <div class="col-sm">
+<!--     <div class="col-sm">
       <div id="sources-widget">
         <h2 class="text-xl font-bold mb-2">Источники опубликования за сутки:</h2>
         <BarChart v-bind="{ chartBarData: chartBarData }" />
       </div>
-    </div>
+    </div> -->
 
 <!--     <div class="col-sm">
       <div id="subjects-widget">
@@ -30,7 +30,7 @@
         <PieChart v-bind="{ chartPieData: chartPieData }" />
       </div>
     </div> -->
-  </div>
+
 </template>
 
 <script>

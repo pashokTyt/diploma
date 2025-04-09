@@ -40,4 +40,8 @@ export default {
   overflow-y: auto;
 }
 
+.download-link{
+  color: #0000EE  
+}
+
 </style>
