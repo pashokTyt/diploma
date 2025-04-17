@@ -33,6 +33,7 @@ export default {
     data() {
         return {
             map: null,
+            publ_count: 5,
         };
     },
 
@@ -90,9 +91,11 @@ export default {
         showPopup(feature, layer) {
             const regionName = feature.properties.name;
             const regionData = this.getRegionData(regionName);
+            const publ_count = this.publ_count;
             const popupContent = `
                 <div class="popup-content">
                     <h3 style="font-size: 22px; font-weight: 600;">${regionName}</h3>
+                    <h2 style="font-size: 22px; font-weight: 600;">За последние сутки опубликовано: ${publ_count}</h2>
                     <div class="sources">
                     <a href="${regionData.source1}" target="_blank" style="font-size: 16px; display: block; margin-bottom: 5px;">ИПС Законодательство</a>
                     <a href="${regionData.source2}" target="_blank" style="font-size: 16px; display: block; margin-bottom: 5px;">Pravo.gov.ru</a>
