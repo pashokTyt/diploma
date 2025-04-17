@@ -1,6 +1,7 @@
 from django.db import models  # type: ignore
 from django.db.models.functions import Now  # type: ignore
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 
 class Region(models.Model):
@@ -43,6 +44,13 @@ class PublishedNPA(models.Model):
         on_delete=models.CASCADE,
         related_name="published_npas"
     )
+    # свойство, вычисляется разница между датами
+    @property
+    def days_diff(self):
+        publish_date = self.publish_date
+        write_date = self.write_date
+        delta = relativedelta(write_date, publish_date)
+        return delta.days
 
     class Meta:
         db_table = 'published_npa'

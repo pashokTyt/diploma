@@ -102,7 +102,7 @@ class PublishedNpaViewSet(GenericViewSet,
         }
 
         return Response(data_to_serialize)
-
+    
 
 class SourceViewsSet(GenericViewSet,
                      ListModelMixin,):

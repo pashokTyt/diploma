@@ -15,7 +15,7 @@ from parser import parse_orel_npa, get_data_IPS
 def run_parser_task():
     logger.info("Парсер запущен")
     parse_orel_npa()
-    get_data_IPS()
+    # get_data_IPS()
     logger.info("Парсер завершил работу")
 
 

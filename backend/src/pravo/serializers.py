@@ -21,7 +21,8 @@ class PublishedNpaSerializer(serializers.ModelSerializer):
     #  почитать про  prefetch_related, вроде тут пригодится
     source = SourceSerializer()
     region = RegionSerializer()
-
+    days_diff = serializers.ReadOnlyField()
+    
     class Meta:
         model = PublishedNPA
         fields = '__all__'
