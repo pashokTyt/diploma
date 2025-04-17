@@ -1,15 +1,17 @@
 <template>
   <div class="dashboard">
-    <header>
-      <h1>Дашборд</h1>
-    </header>
     <main>
       <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <section class="stats">
+            <h2>За сутки:</h2>
             <div class="stat">
               <h2>Опубликованные НПА</h2>
               <p>{{ publishedNpasCount }}</p>
+            </div>
+            <div class="stat">
+              <h2>Неопубликованные НПА</h2>
+              <p>{{ unpublishedNpasCount }}</p>
             </div>
             <div class="stat">
               <h2>Регионы</h2>
@@ -19,26 +21,33 @@
               <h2>Источники</h2>
               <p>{{ sourcesCount }}</p>
             </div>
+            <div class="stat">
+              <h2>Просроченных</h2>
+              <p>{{ overdueCount }}</p>
+            </div>
             <div class="select-region">
-              <select v-model="selectedRegion" @change="updateStats">
-                <option value="all">Все регионы</option>
-                <option v-for="region in regions" :key="region" :value="region">{{ region }}</option>
-              </select>
+              <el-cascader v-model="selectedRegion" :options="formattedRegions" :props="cascaderProps" clearable
+                multiple filterable allow-create default-first-option :reserve-keyword="false" size="large" placeholder="Выбраны все субъекты РФ"
+                style="width: 100%" />
             </div>
           </section>
-        </div>
-        <div class="col-md-8">
-          <section class="charts">
-            <h2>Последние опубликованные НПА</h2>
-            <ul>
-              <li v-for="npa in latestNpas" :key="npa.name">
-                {{ npa.name }} ({{ npa.publishDate }})
-              </li>
-            </ul>
 
-            <div class="chart-container">
-              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfaukuzKXQxLeUd8NqGpqHf49lTZmz1_TnkQ&s"
-                alt="График 1" class="chart">
+
+          <div class="latest-npa">
+            <h4>Последние опубликованные НПА:</h4>
+            <div class="npa-list">
+              <div v-for="(npa, index) in latestNpas" :key="index" class="npa-item">
+                {{ npa }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-9">
+          <section class="charts">
+            <div id="monitoring-widget">
+              <h2 class="text-xl font-bold mb-2">Мониторинг опубликования:</h2>
+              <LineChart v-bind="{ chartLineData: chartLineData }" />
             </div>
           </section>
         </div>
@@ -47,33 +56,18 @@
       <div class="row">
         <div class="col-md-6">
           <section class="charts">
-            <h2>График 2</h2>
-            <div class="chart-container">
-              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfaukuzKXQxLeUd8NqGpqHf49lTZmz1_TnkQ&s"
-                alt="График 2" class="chart">
+            <div id="subjects-widget">
+              <h2 class="text-xl font-bold mb-2">Субъекты РФ:</h2>
+              <PieChart v-bind="{ chartPieData: chartPieData }" />
             </div>
           </section>
         </div>
         <div class="col-md-6">
           <section class="charts">
-            <h2>График 3</h2>
-            <div class="chart-container">
-              <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfaukuzKXQxLeUd8NqGpqHf49lTZmz1_TnkQ&s"
-                alt="График 3" class="chart">
+            <h2>Распределение по источникам</h2>
+            <div id="sources-widget">
+              <BarChart v-bind="{ chartBarData: chartBarData }" />
             </div>
-          </section>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-md-12">
-          <section class="news">
-            <h2>Последние новости</h2>
-            <ul>
-              <li v-for="news in latestNews" :key="news.title">
-                {{ news.title }} ({{ news.date }})
-              </li>
-            </ul>
           </section>
         </div>
       </div>
@@ -82,39 +76,97 @@
 </template>
 
 <script>
-import 'bootstrap/dist/css/bootstrap.min.css';
+import LineChart from './LineChart.vue';
+import BarChart from './BarChart.vue';
+import PieChart from './PieChart.vue';
+import { selectedRegion } from '@/pinia';
+import { useRegionsStore } from '@/pinia';
 
 export default {
+  components: {
+    LineChart,
+    BarChart,
+    PieChart,
+  },
   data() {
     return {
-      publishedNpasCount: 50,
-      regionsCount: 10,
-      sourcesCount: 5,
-      latestNpas: [
-        { name: "НПА 1", publishDate: "2023-01-01" },
-        { name: "НПА 2", publishDate: "2023-01-15" },
-        { name: "НПА 3", publishDate: "2023-02-01" },
-      ],
-      latestNews: [
-        { title: "Новость 1", date: "2023-01-01" },
-        { title: "Новость 2", date: "2023-01-15" },
-        { title: "Новость 3", date: "2023-02-01" },
-      ],
-      regions: ["Москва", "Санкт-Петербург", "Орёл"],
-      selectedRegion: "all",
-    };
+      publishedNpasCount: 327,
+      unpublishedNpasCount: 13,
+      regionsCount: 38,
+      sourcesCount: 96,
+      overdueCount: 22,
+      chartLineData: [],
+      chartBarData: [],
+      chartPieData: [],
+      selectedRegion: null,
+      latestNpas: ["Распоряжение № 164-р от 28.03.2025 Распоряжение Правительства Орловской области от 28.03.2025г. №164-р", "Распоряжение № 163-р от 28.03.2025 Распоряжение Правительства Орловской области от 28.03.2025г. №163-р", "Распоряжение № 161-р от 28.03.2025 Распоряжение Правительства Орловской области от 28.03.2025г. №161-р"],
+      latestNews: [],
+      regions: [],
+      loading: true,
+      cascaderProps: {
+        value: 'value',
+        label: 'label',
+        children: 'children'
+      },
+    }
   },
+  async mounted() {
+    await this.loadInitialData()
+    await this.updateChartData()
+  },
+
+  async created() {
+    const regionsStore = useRegionsStore();
+    try {
+      await regionsStore.fetchRegions();
+    } catch (err) {
+      this.error = 'Ошибка при загрузке данных';
+    }
+  },
+
+
   methods: {
-    updateStats() {
-      if (this.selectedRegion === "all") {
-        this.publishedNpasCount = 50;
-        this.regionsCount = 10;
-        this.sourcesCount = 5;
-      } else {
-        this.publishedNpasCount = 10;
-        this.regionsCount = 1;
-        this.sourcesCount = 2;
+    getSelectedRegion() {
+      const store = selectedRegion();
+      const regionName = store.getRegionName;
+      const regionNameAsString = regionName.toString();
+      this.selectedRegion = regionNameAsString;
+      return regionNameAsString;
+    },
+
+    async updateChartData() {
+      const regionNameString = this.getSelectedRegion();
+      try {
+        const response = await this.$http.get(`api/published-npa/get_chart_data/`, {
+          params: {
+            region_name: regionNameString,
+          },
+        });
+        this.chartLineData = response.data.count_all_per_day;
+        this.chartBarData = response.data.count_sources;
+        this.chartPieData = response.data.count_regions;
+      } catch (error) {
+        console.error('Ошибка при получении данных:', error);
       }
+    },
+
+    async handleRegionSelected(regionName) {
+      console.log("Выбран регион в родительском компоненте:", regionName);
+      this.selectedRegion = regionName;
+      await this.updateChartData();
+    },
+  },
+
+
+  computed: {
+    //костыли
+
+    formattedRegions() {
+      const regionsStore = useRegionsStore();
+      return regionsStore.getRegions.map(region => ({
+        value: region.code,
+        label: region.label,
+      }));
     },
   },
 };
@@ -122,19 +174,19 @@ export default {
 
 <style scoped>
 .dashboard {
-  max-width: 1200px;
-  margin: auto;
+  max-width: 1800px;
+  margin: 0 auto;
   padding: 20px;
   background-color: #f9f9f9;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 header {
-  background-color: #333;
-  color: #fff;
-  padding: 10px;
-  text-align: center;
-  border-radius: 5px 5px 0 0;
+  background-color: #2c3e50;
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
 }
 
 main {
@@ -142,62 +194,104 @@ main {
 }
 
 .stats {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .stat {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 5px;
-  width: 100%;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 .stat h2 {
-  margin-top: 0;
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 5px;
 }
 
-.select-region {
-  margin-top: 20px;
+.stat p {
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: #2c3e50;
 }
 
 .select-region select {
   width: 100%;
   padding: 10px;
-  border-radius: 5px;
+  border-radius: 4px;
   border: 1px solid #ddd;
+  background: white;
 }
 
 .charts {
-  margin-bottom: 20px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
 
 .chart-container {
-  margin-bottom: 20px;
+  margin-top: 20px;
 }
 
-.chart {
-  width: 100%;
-  height: auto;
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.news ul {
+.npa-list,
+.news-list {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
-.news li {
-  margin-bottom: 10px;
+.npa-item,
+.news-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
 }
 
-h2 {
-  color: #333;
-  margin-bottom: 10px;
+.npa-date,
+.news-date {
+  color: #666;
+  min-width: 120px;
+}
+
+.npa-name,
+.news-title {
+  flex-grow: 1;
+  margin-left: 20px;
+}
+
+.chart-placeholder img {
+  width: 100%;
+  border-radius: 4px;
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .stat p {
+    font-size: 1.4rem;
+  }
+
+  .npa-item,
+  .news-item {
+    flex-direction: column;
+  }
+
+  .npa-date,
+  .news-date {
+    margin-bottom: 5px;
+  }
+}
+
+.latest-npa {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 5%;
+  margin-bottom: 5%;
 }
 </style>

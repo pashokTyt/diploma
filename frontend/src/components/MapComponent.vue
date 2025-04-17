@@ -1,6 +1,6 @@
 <template>
-    <div>
-        <div ref="map" style="height:700px; width: 100%;"></div>
+    <div class="map">
+        <div ref="map" style="height:600px; width: 100%;"></div>
     </div>
 </template>
 
@@ -159,5 +159,9 @@ export default {
     font-size: 16px;
     display: block;
     margin-bottom: 5px;
+}
+
+.map {
+    padding: 25px;
 }
 </style>

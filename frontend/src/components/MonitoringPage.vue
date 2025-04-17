@@ -1,6 +1,7 @@
 <template>
   <!-- map -->
   <div id="map-widget">
+    <p></p>
     <h2 class="text-xl font-bold mb-2">Карта регионов:</h2>
     <!--     <el-button round @click="updateChartData()">Обновить графики</el-button>
     <p></p> -->

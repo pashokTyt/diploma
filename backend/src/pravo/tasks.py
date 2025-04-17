@@ -26,6 +26,9 @@ def run_parser_task():
 # sudo systemctl start redis-server
 
 
+# git add .
+# git commit -m "Что-то про коммит"
+
 
 # git remote add origin https://github.com/pashokTyt/diploma.git
 # git branch -M main
