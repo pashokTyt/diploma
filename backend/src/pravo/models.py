@@ -25,14 +25,14 @@ class PublishedNPA(models.Model):
     # метка опубликован ли НПА
     published = models.BooleanField("Есть ли на право.гов.ру?", default=False)
 
-    name = models.CharField("Название НПА", max_length=None)
+    name = models.CharField("Название НПА", max_length=255) # for postgresql max_lenght = None, sqlite = 255
     number = models.CharField("Номер НПА", max_length=10)
     publish_date = models.DateField("Дата опубликования")
     write_date = models.DateField("Дата подписания НПА")
     date_now = models.DateField(
         verbose_name='Дата загрузки на портал', default=datetime.now)
     link_to_download = models.CharField(
-        "Ссылка на скачивание", max_length=None)
+        "Ссылка на скачивание", max_length=255)
 
     source = models.ForeignKey(
         Source,

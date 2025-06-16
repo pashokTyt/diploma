@@ -5,6 +5,7 @@ import datetime as datetime
 import os
 import django
 from bs4 import BeautifulSoup  # type: ignore
+import dateparser # type: ignore
 
 import asyncio
 import aiohttp  # type: ignore
@@ -32,7 +33,7 @@ logging.basicConfig(filename='parser.log', level=logging.INFO)
 
 def get_data_pravo_gov_ru(base_url = "http://publication.pravo.gov.ru/api/Documents", 
                           block="region57", start_index=1, 
-                          end_index=4, source_name="pravo.gov.ru"):
+                          end_index=299, source_name="pravo.gov.ru"):
     try:
         source = models.Source.objects.get(name=source_name)
     except models.Source.DoesNotExist:
@@ -199,13 +200,14 @@ async def get_data_orel_region(url="shit", region_name="ОРЛОВСКАЯ ОБ�
 
     async with aiohttp.ClientSession() as session:
         req_text = await fetch(session, url="https://orel-region.ru/index.php?head=17&part=61&page=")
+        
         soup = BeautifulSoup(req_text, "lxml")
 
         page_count = int(soup.find("div", class_="pagenavig").text.split(":")[
                          1].split(".")[0])
 
         tasks = []
-        for page in range(0, page_count)[0:10]:
+        for page in range(0, page_count)[0:300]:
             page_url = f"https://orel-region.ru/index.php?head=17&part=61&page={
                 page}"
             tasks.append(fetch(session, page_url))
@@ -302,7 +304,7 @@ import re
 
 def get_data_IPS():
     # тут начались танцы с бубном, сайт подгружает все динамически, поэтому нашел ЮРЛ, который возвращает html, в котором таблица со всеми НПА
-    url = "http://pravo.gov.ru/proxy/ips/?list_itself=&bpas=r015700&a3=&a3type=1&a3value=&a6=&a6type=1&a6value=&a15=&a15type=1&a15value=&a7type=4&a7from=01.12.2024&a7to=31.12.2025&a7date=&a8=&a8type=1&a1=&a0=&a16=&a16type=1&a16value=&a17=&a17type=1&a17value=&a4=&a4type=1&a4value=&a23=&a23type=1&a23value=&textpres=&sort=7&x=68&y=13&lstsize=200&start=0&page=first"
+    url = "http://pravo.gov.ru/proxy/ips/?list_itself=&bpas=r015700&intelsearch=%CE%F0%EB%EE%E2%F1%EA%E0%FF+%EE%E1%EB%E0%F1%F2%FC&sort=7&lstsize=2000&page=first"
     try:
         response = requests.get(url)
         response.raise_for_status() 
@@ -318,6 +320,8 @@ def get_data_IPS():
 
     tables = soup.find_all("table", class_="list_elem")
 
+    l_name_table = soup.find('table', class_='l_name')
+    
     if tables:
         for table in tables:
             rows = table.find_all("tr")
@@ -326,7 +330,21 @@ def get_data_IPS():
                 for col in cols:
                     if col.find("div", class_="l_link"):
                         link_div = col.find("div", class_="l_link")
-                        name = link_div.find("a").text.strip()
+                        
+                        
+                        if link_div:
+                            a_tag = link_div.find('a', class_='bold')
+                        if a_tag:
+                            link_text = a_tag.get_text(strip=True)
+                        
+                        
+                        #####
+                        span_bold = l_name_table.find('span', class_='bold')
+                        if span_bold:
+                            span_text = span_bold.get_text(strip=True)
+                        #####
+                        
+                        name = link_text + " " + span_text
 
                         match = re.search(r'№\s*(\d+)', name)
                         if match:
@@ -334,8 +352,31 @@ def get_data_IPS():
                         else:
                             number = "Номер не найден"
 
-                        publish_date_str = "27.03.2025" 
-                        write_date_str = "27.03.2025"
+                        ############################# ok work
+                        publish_date_match = re.search(r'(\d{2}\.\d{2}\.\d{4})', link_text)
+                        if publish_date_match:
+                            publish_date_str = publish_date_match.group(1)
+                        else:
+                            publish_date_str = "01.01.1900"  # или другое значение по умолчанию
+
+                        # Парсим дату подписания из span_text с помощью dateparser
+
+                        pattern = r"от\s+(\d{1,2}\s+[а-яА-ЯёЁ]+\s+\d{4})\s+года"
+                        
+                        
+                        match = re.search(pattern, span_text)
+                        if match:
+                            date_str = match.group(1)  # например, "30 января 2025"
+                            parsed_date = dateparser.parse(date_str, languages=['ru'])
+                            if parsed_date: 
+                                write_date_str = parsed_date.strftime('%d.%m.%Y')
+                            else:
+                                print("Не удалось распарсить дату")
+                        else:
+                            print("Дата не найдена в тексте")
+                        
+                        
+                        
                         date_current = datetime.today().date()
                         link_to_download = '-'
 
@@ -351,7 +392,6 @@ def get_data_IPS():
                         except models.Region.DoesNotExist:
                             region_instance = models.Region.objects.create(name=region_name, code="57")
 
-                        print(name)
                         try:
                             new_record = models.PublishedNPA(
                                 published=False,
@@ -400,5 +440,13 @@ def parse_orel_npa():
     logging.info('Парсер завершил работу')
 
 if __name__ == "__main__":
-    parse_orel_npa()
+    # parse_orel_npa()
     # get_data_IPS()
+    # models.PublishedNPA.objects.all().delete()
+    try:
+        asyncio.run(get_data_orel_region())
+    except ValueError as e:
+                print(f"Ошибка парсинга с  orel-region: {e}")
+                
+    
+    

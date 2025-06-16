@@ -12,6 +12,37 @@ from . serializers import PublishedNpaSerializer, RegionSerializer, SourceSerial
 from .pagination import PublishedNpaPagination
 from django.db.models import Count
 
+from rest_framework.views import APIView
+from django.utils import timezone
+from datetime import timedelta
+
+
+#############################
+
+
+class DashboardDataView(APIView):
+    def get(self, request):
+        today = timezone.now().date()
+        published_count = PublishedNPA.objects.filter(published=True, date_now=today).count()
+        unpublished_count = PublishedNPA.objects.filter(published=False, date_now=today).count()
+        regions_count = Region.objects.count()
+        sources_count = Source.objects.count()
+        overdue_count = PublishedNPA.objects.filter(published=False, write_date__lt=today - timedelta(days=30)).count()
+        latest_npas_qs = PublishedNPA.objects.filter(published=True).order_by('-publish_date')[:5]
+        latest_npas = [f"{npa.name} №{npa.number} от {npa.publish_date.strftime('%d.%m.%Y')}" for npa in latest_npas_qs]
+
+        data = {
+            "publishedNpasCount": published_count,
+            "unpublishedNpasCount": unpublished_count,
+            "regionsCount": regions_count,
+            "sourcesCount": sources_count,
+            "overdueCount": overdue_count,
+            "latestNpas": latest_npas,
+        }
+        return Response(data)
+    
+##################################
+
 
 from rest_framework_swagger.views import get_swagger_view
 

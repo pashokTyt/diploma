@@ -20,7 +20,7 @@
             <a :href="row.link_to_download" class="download-link">Скачать</a>
           </template>
         </el-table-column>
-        <el-table-column label="Опубликован" min-width="200">
+        <el-table-column label="Загружен" min-width="200">
           <template #default="{ row }">
             <span v-if="row.published">&#10004;</span>
             <span v-else>&#10006;</span>

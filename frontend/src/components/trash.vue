@@ -26,21 +26,24 @@
               <p>{{ overdueCount }}</p>
             </div>
             <div class="select-region">
-              <el-cascader v-model="selectedRegion" :options="formattedRegions" :props="cascaderProps" clearable
-                multiple filterable allow-create default-first-option :reserve-keyword="false" size="large" placeholder="Выбраны все субъекты РФ"
-                style="width: 100%" />
+              <el-cascader
+                v-model="selectedRegion"
+                :options="formattedRegions"
+                :props="cascaderProps"
+                clearable
+                multiple
+                filterable
+                allow-create
+                default-first-option
+                :reserve-keyword="false"
+                size="large"
+                placeholder="Выбраны все субъекты РФ"
+                style="width: 100%"
+              />
             </div>
           </section>
 
-
-          <div class="latest-npa">
-            <h4>Последние опубликованные НПА:</h4>
-            <div class="npa-list">
-              <div v-for="(npa, index) in latestNpas" :key="index" class="npa-item">
-                {{ npa }}
-              </div>
-            </div>
-          </div>
+          
         </div>
 
         <div class="col-md-9">
@@ -70,6 +73,14 @@
             </div>
           </section>
         </div>
+        <div class="latest-npa">
+            <h4>Последние опубликованные НПА:</h4>
+            <div class="npa-list">
+              <div v-for="(npa, index) in latestNpas" :key="index" class="npa-item">
+                {{ npa }}
+              </div>
+            </div>
+          </div>
       </div>
     </main>
   </div>
@@ -90,80 +101,89 @@ export default {
   },
   data() {
     return {
-      publishedNpasCount: 327,
-      unpublishedNpasCount: 13,
-      regionsCount: 38,
-      sourcesCount: 96,
-      overdueCount: 22,
-      chartLineData: [],
-      chartBarData: [],
-      chartPieData: [],
+      publishedNpasCount: 0,
+      unpublishedNpasCount: 0,
+      regionsCount: 0,
+      sourcesCount: 0,
+      overdueCount: 0,
+      chartLineData: {},
+      chartBarData: {},
+      chartPieData: {},
       selectedRegion: null,
-      latestNpas: ["Распоряжение № 164-р от 28.03.2025 Распоряжение Правительства Орловской области от 28.03.2025г. №164-р", "Распоряжение № 163-р от 28.03.2025 Распоряжение Правительства Орловской области от 28.03.2025г. №163-р", "Распоряжение № 161-р от 28.03.2025 Распоряжение Правительства Орловской области от 28.03.2025г. №161-р"],
-      latestNews: [],
-      regions: [],
+      latestNpas: [],
       loading: true,
+      error: null,
       cascaderProps: {
         value: 'value',
         label: 'label',
-        children: 'children'
+        children: 'children',
       },
-    }
+    };
   },
-  async mounted() {
-    await this.loadInitialData()
-    await this.updateChartData()
-  },
-
   async created() {
     const regionsStore = useRegionsStore();
     try {
       await regionsStore.fetchRegions();
     } catch (err) {
-      this.error = 'Ошибка при загрузке данных';
+      this.error = 'Ошибка при загрузке данных регионов';
+      console.error(err);
     }
   },
-
-
+  async mounted() {
+    await this.loadDashboardData();
+    await this.updateChartData();
+  },
   methods: {
     getSelectedRegion() {
       const store = selectedRegion();
       const regionName = store.getRegionName;
-      const regionNameAsString = regionName.toString();
+      const regionNameAsString = regionName ? regionName.toString() : null;
       this.selectedRegion = regionNameAsString;
       return regionNameAsString;
     },
-
+    async loadDashboardData() {
+      try {
+        this.loading = true;
+        const response = await this.$http.get('/api/dashboard/');
+        const data = response.data;
+        this.publishedNpasCount = data.publishedNpasCount;
+        this.unpublishedNpasCount = data.unpublishedNpasCount;
+        this.regionsCount = data.regionsCount;
+        this.sourcesCount = data.sourcesCount;
+        this.overdueCount = data.overdueCount;
+        this.latestNpas = data.latestNpas;
+      } catch (error) {
+        this.error = 'Ошибка при загрузке статистики дашборда';
+        console.error(error);
+      } finally {
+        this.loading = false;
+      }
+    },
     async updateChartData() {
       const regionNameString = this.getSelectedRegion();
       try {
-        const response = await this.$http.get(`api/published-npa/get_chart_data/`, {
+        const response = await this.$http.get('api/published-npa/get_chart_data/', {
           params: {
             region_name: regionNameString,
           },
         });
-        this.chartLineData = response.data.count_all_per_day;
-        this.chartBarData = response.data.count_sources;
-        this.chartPieData = response.data.count_regions;
+        this.chartLineData = response.data.count_all_per_day || {};
+        this.chartBarData = response.data.count_sources || {};
+        this.chartPieData = response.data.count_regions || {};
       } catch (error) {
-        console.error('Ошибка при получении данных:', error);
+        console.error('Ошибка при получении данных графиков:', error);
       }
     },
-
     async handleRegionSelected(regionName) {
-      console.log("Выбран регион в родительском компоненте:", regionName);
+      console.log('Выбран регион в родительском компоненте:', regionName);
       this.selectedRegion = regionName;
       await this.updateChartData();
     },
   },
-
-
   computed: {
-    //костыли
-
     formattedRegions() {
       const regionsStore = useRegionsStore();
-      return regionsStore.getRegions.map(region => ({
+      return regionsStore.getRegions.map((region) => ({
         value: region.code,
         label: region.label,
       }));

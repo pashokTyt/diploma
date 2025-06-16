@@ -6,12 +6,6 @@
 
 <script>
 export default {
-    props: {
-        chartLineData: {
-            type: Object,
-            required: true,
-        }
-    },
     name: 'LineChart',
     data() {
         return {
@@ -73,7 +67,7 @@ export default {
                 grid: { borderColor: '#2C3E50' },
                 stroke: {
                     curve: 'smooth',
-                    width: 1.5,
+                    width: 4,
                 },
                 dataLabels: {
                     enabled: true,
@@ -87,30 +81,30 @@ export default {
             series: [],
         };
     },
-
-
-    watch: {
-        chartLineData: {
-            handler(newValue, oldValue) {
-                this.updateLineChart(newValue);
-            },
-            deep: true,
-        },
+    created() {
+        this.series = this.generateRandomSeries(3, 7, 5, 30);
     },
-
     methods: {
-        async updateLineChart(chartData) {
-            if (chartData) {
-                this.series = await chartData.series;
-                this.chartOptions.xaxis.categories = await chartData.categories;
-                /* for (let i = 0; i < 7; i++) {
-                    this.chartOptions.xaxis.categories.push(Date());
-                }; */
-                /* this.computeData(); */
-            };
+        // Генерация массива случайных чисел длиной count в диапазоне [min, max]
+        generateRandomData(count, min, max) {
+            const data = [];
+            for (let i = 0; i < count; i++) {
+                data.push(Math.floor(Math.random() * (max - min + 1)) + min);
+            }
+            return data;
         },
-    },
-
+        // Генерация массива серий с уникальными именами и случайными данными
+        generateRandomSeries(seriesCount, pointsCount, minValue, maxValue) {
+            const series = [];
+            for (let i = 1; i <= seriesCount; i++) {
+                series.push({
+                    name: `Серия ${i}`,
+                    data: this.generateRandomData(pointsCount, minValue, maxValue),
+                });
+            }
+            return series;
+        }
+    }
 };
 </script>
 

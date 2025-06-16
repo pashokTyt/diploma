@@ -1,44 +1,44 @@
 import os
 import django
 from rapidfuzz import fuzz
+from datetime import datetime
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'diplom.settings')
 django.setup()
 from pravo import models
 
 
-def compare_npa():
+def update_published_flags():
     queryset = models.PublishedNPA.objects.all()
-    pravo_gov_ru_data = queryset.filter(source__name__iexact="pravo.gov.ru")
-    no_pravo_data = queryset.exclude(source__name__iexact="pravo.gov.ru")
 
-    published_npa = set()
-    not_published_npa = set()
+    # НПА из источника "ИПС Законодательство"
+    ips_data = queryset.filter(source__name__iexact="ИПС Законодательство")
 
-    for npa in no_pravo_data:
-        best_match = None
-        best_score = 0
+    # Неопубликованные НПА из других источников (published=False)
+    other_unpublished_npas = queryset.filter(
+        published=False
+    ).exclude(source__name__iexact="ИПС Законодательство")
 
-        for pravo_npa in pravo_gov_ru_data:
-            name_score = fuzz.token_sort_ratio(npa.name, pravo_npa.name)
-            if npa.number == pravo_npa.number and npa.write_date == pravo_npa.write_date:
-                score = name_score + 100
-            else:
-                score = name_score
+    updated_count = 0
 
-            if score > best_score:
-                best_score = score
-                best_match = pravo_npa
+    for other_npa in other_unpublished_npas:
+        found_match = False
 
-        if best_score > 80:
-            published_npa.add((npa.name, npa.number, npa.write_date))
-            npa.published = True
-            npa.save()
-        else:
-            not_published_npa.add((npa.name, npa.number, npa.write_date))
+        for ips_npa in ips_data:
 
-    return published_npa, not_published_npa
+            # Или fuzzy-сравнение названий с порогом 85
+            name_score = fuzz.token_sort_ratio(other_npa.name, ips_npa.name)
+            if name_score > 85:
+                found_match = True
+                break
 
-published, not_published = compare_npa()
-print("Опубликованные НПА:", published)
-print("Неопубликованные НПА:", not_published)
+        if found_match:
+            other_npa.published = True
+            other_npa.save(update_fields=['published'])
+            updated_count += 1
+
+    print(f"Обновлено меток published для {updated_count} НПА.")
+
+
+if __name__ == "__main__":
+    update_published_flags()

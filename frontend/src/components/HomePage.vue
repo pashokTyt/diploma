@@ -8,7 +8,7 @@
         <div class="filter-panel">
           <div class="filter-elements">
             <div class="row">
-              <el-checkbox v-model="checked" label="Опубликованы" size="large" @change="fetchNpas" border />
+              <el-checkbox v-model="checked" label="Загружены" size="large" @change="fetchNpas" border />
             </div>
             <p></p>
             <div class="row">
@@ -34,7 +34,7 @@
       </div>
       <!-- search, table, pagination -->
       <div class="col-md-9">
-        <h2>Список неопубликованных НПА</h2>
+        <h2>Список незагруженных НПА</h2>
         <div class="search-table-pagination">
           <!-- search -->
           <form @submit.prevent="submitForm" class="form-inline my-2 my-lg-0 d-flex align-items-center">

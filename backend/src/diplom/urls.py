@@ -24,5 +24,6 @@ urlpatterns = [
 
 
     path('api/', include(router.urls)),
+    path('api/dashboard/', views.DashboardDataView.as_view(), name='dashboard-data'),
     path('admin/', admin.site.urls),
 ]
