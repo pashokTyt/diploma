@@ -1,4 +1,5 @@
 import datetime as dt
+from rest_framework import viewsets
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.response import Response
@@ -79,43 +80,32 @@ class PublishedNpaViewSet(GenericViewSet,
 
     @action(methods=['GET'], detail=False)
     def get_chart_data(self, request):
-        today = dt.date.today() - dt.timedelta(weeks=0)
-        dates = [(today - dt.timedelta(days=i)).strftime('%d-%m-%Y')
-                 for i in range(7)]
+        today = dt.date.today()
+        dates = [(today - dt.timedelta(days=i)).strftime('%d-%m-%Y') for i in range(7)]
 
-        region_name = str(request.query_params.get(
-            'region_name', None)).upper()
+        region_name = request.query_params.get('region_name', None)
+        if region_name:
+            region_name = region_name.upper()
 
         filtered_queryset = self.queryset.filter(
-            date_now__in=[dt.datetime.strptime(
-                date, '%d-%m-%Y').date() for date in dates]
+            date_now__in=[dt.datetime.strptime(date, '%d-%m-%Y').date() for date in dates]
         )
-        
+
         if region_name:
-            filtered_queryset = filtered_queryset.filter(
-                region__name__iexact=region_name)
+            filtered_queryset = filtered_queryset.filter(region__name__iexact=region_name)
 
-        count_all_per_day = filtered_queryset.values(
-            'date_now').annotate(count=Count('id'))
-        """ categories_line = [item['date_now'] for item in count_all_per_day] """
-        categories_line = []
-        for item in count_all_per_day:
-            categories_line.append(f'{item['date_now']}')
+        count_all_per_day = filtered_queryset.values('date_now').annotate(count=Count('id')).order_by('date_now')
+        categories_line = [item['date_now'].strftime('%d-%m-%Y') for item in count_all_per_day]
 
-        series_line = [{'name': 'Опубликовано', 'data': [
-            item['count'] for item in count_all_per_day]}]
+        series_line = [{'name': 'Опубликовано', 'data': [item['count'] for item in count_all_per_day]}]
 
-        count_sources = filtered_queryset.filter(date_now=today).values(
-            'source__name').annotate(count=Count('id'))
+        count_sources = filtered_queryset.filter(date_now=today).values('source__name').annotate(count=Count('id'))
         categories_sources = [item['source__name'] for item in count_sources]
-        series_sources = [{'name': 'Опубликовано', 'data': [
-            item['count'] for item in count_sources]}]
+        series_sources = [{'name': 'Опубликовано', 'data': [item['count'] for item in count_sources]}]
 
-        count_regions = filtered_queryset.values(
-            'region__name').annotate(count=Count('id'))
+        count_regions = filtered_queryset.values('region__name').annotate(count=Count('id'))
         categories_regions = [item['region__name'] for item in count_regions]
-        series_regions = [[
-            item['count'] for item in count_regions]]
+        series_regions = [[item['count'] for item in count_regions]]
 
         data_to_serialize = {
             'count_all_per_day': {
@@ -133,6 +123,7 @@ class PublishedNpaViewSet(GenericViewSet,
         }
 
         return Response(data_to_serialize)
+
     
 
 class SourceViewsSet(GenericViewSet,
@@ -145,3 +136,44 @@ class RegionViewSet(GenericViewSet,
                     ListModelMixin,):
     queryset = Region.objects.all()
     serializer_class = RegionSerializer
+    
+    
+class RegionMapDataView(APIView):
+    """
+    Возвращает данные по регионам для отображения на карте:
+    - название региона
+    - количество опубликованных НПА за последние сутки
+    - ссылки на источники (пример)
+    """
+    def get(self, request):
+        today = timezone.now().date()
+        yesterday = today - timedelta(days=1)
+
+        # Получаем все регионы
+        regions = Region.objects.all()
+
+        data = []
+        for region in regions:
+            # Кол-во опубликованных НПА за последние сутки для региона
+            published_count = PublishedNPA.objects.filter(
+                region=region,
+                published=True,
+                date_now__gte=yesterday,
+                date_now__lte=today
+            ).count()
+
+            # Пример ссылок на источники — можно брать из модели Source, связанной с регионом или фиксированные
+            sources = {
+                "source1": "https://example.com/source1",
+                "source2": "https://example.com/source2",
+                "source3": "https://example.com/source3",
+                "source4": "https://example.com/source4",
+            }
+
+            data.append({
+                "region_name": region.name,
+                "published_count": published_count,
+                "sources": sources,
+            })
+
+        return Response(data)

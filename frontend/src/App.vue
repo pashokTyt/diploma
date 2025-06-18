@@ -23,8 +23,7 @@
                                 </li>
                                 <li class="nav-item">
                                     <router-link to="/monitoring" class="nav-link custom-link" active-class="active">
-                                        <h6>Мониторинг
-                                            пополнения НПА</h6>
+                                        
                                     </router-link>
                                 </li>
                                 <li class="nav-item">

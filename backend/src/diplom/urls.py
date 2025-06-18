@@ -12,6 +12,7 @@ router.register(r'regions', views.RegionViewSet, basename='regions')
 router.register(r'sources', views.SourceViewsSet, basename='sources')
 
 
+
 urlpatterns = [
     # swagger
     re_path(r'^doc(?P<format>\.json|\.yaml)$',
@@ -25,5 +26,6 @@ urlpatterns = [
 
     path('api/', include(router.urls)),
     path('api/dashboard/', views.DashboardDataView.as_view(), name='dashboard-data'),
+    path('api/regions/map_data/', views.RegionMapDataView.as_view(), name='region-map-data'),
     path('admin/', admin.site.urls),
 ]

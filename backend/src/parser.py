@@ -33,7 +33,7 @@ logging.basicConfig(filename='parser.log', level=logging.INFO)
 
 def get_data_pravo_gov_ru(base_url = "http://publication.pravo.gov.ru/api/Documents", 
                           block="region57", start_index=1, 
-                          end_index=299, source_name="pravo.gov.ru"):
+                          end_index=4, source_name="pravo.gov.ru"):
     try:
         source = models.Source.objects.get(name=source_name)
     except models.Source.DoesNotExist:
@@ -207,7 +207,7 @@ async def get_data_orel_region(url="shit", region_name="ОРЛОВСКАЯ ОБ�
                          1].split(".")[0])
 
         tasks = []
-        for page in range(0, page_count)[0:300]:
+        for page in range(0, page_count)[0:2]:
             page_url = f"https://orel-region.ru/index.php?head=17&part=61&page={
                 page}"
             tasks.append(fetch(session, page_url))
@@ -304,7 +304,7 @@ import re
 
 def get_data_IPS():
     # тут начались танцы с бубном, сайт подгружает все динамически, поэтому нашел ЮРЛ, который возвращает html, в котором таблица со всеми НПА
-    url = "http://pravo.gov.ru/proxy/ips/?list_itself=&bpas=r015700&intelsearch=%CE%F0%EB%EE%E2%F1%EA%E0%FF+%EE%E1%EB%E0%F1%F2%FC&sort=7&lstsize=2000&page=first"
+    url = "http://pravo.gov.ru/proxy/ips/?list_itself=&bpas=r015700&intelsearch=%CE%F0%EB%EE%E2%F1%EA%E0%FF+%EE%E1%EB%E0%F1%F2%FC&sort=7&lstsize=100&page=first"
     try:
         response = requests.get(url)
         response.raise_for_status() 
@@ -440,13 +440,10 @@ def parse_orel_npa():
     logging.info('Парсер завершил работу')
 
 if __name__ == "__main__":
-    # parse_orel_npa()
+    parse_orel_npa()
     # get_data_IPS()
     # models.PublishedNPA.objects.all().delete()
-    try:
-        asyncio.run(get_data_orel_region())
-    except ValueError as e:
-                print(f"Ошибка парсинга с  orel-region: {e}")
+    
                 
     
     
